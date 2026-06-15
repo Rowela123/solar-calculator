@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solar Savings Estimate</title>
+<style>
+  :root{--ink:#0d1b24;--ink-soft:#3f5562;--line:#d8e0e3;--paper:#f3f0e9;--sun:#e8a33d;--sun-deep:#cf7d1c;--field:#fff;}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px}
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:26px;gap:16px;flex-wrap:wrap}
+  .mark{font-weight:800;letter-spacing:-.02em;font-size:18px}.mark span{color:var(--sun-deep)}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+  h1{font-size:clamp(26px,4.5vw,42px);line-height:1.04;letter-spacing:-.025em;font-weight:800;margin:0 0 8px}
+  h1 .addr{color:var(--sun-deep)}
+  .lede{font-size:16px;color:var(--ink-soft);max-width:56ch;margin:0 0 22px}
+  .addrbar{display:flex;gap:8px;margin:0 0 26px;max-width:640px}
+  .addrbar input{flex:1;font-size:15px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit}
+  .addrbar input:focus{outline:3px solid #f0d8ad;border-color:var(--sun-deep)}
+  .addrbar button{background:var(--ink);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:14px;padding:0 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
+  .addrbar button:disabled{opacity:.5;cursor:default}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+  @media(max-width:780px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;font-weight:700}
+  label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}
+  .hint{font-size:12px;color:var(--ink-soft);font-weight:400;margin-top:6px}
+  .billrow{position:relative}
+  .billrow .cur{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:23px;font-weight:700;color:var(--ink-soft)}
+  input[type=number]{width:100%;font-size:25px;font-weight:700;padding:13px 15px 13px 32px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;-moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input:focus,select:focus{outline:3px solid #f0d8ad;border-color:var(--sun-deep)}
+  input[type=range]{width:100%;margin:16px 0 4px;accent-color:var(--sun-deep)}
+  .rangeends{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft)}
+  .selectrow{margin-top:20px}
+  select{width:100%;font-size:15px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-weight:600}
+  .render{background:#10243a;border-radius:14px;overflow:hidden;border:1px solid #0a1726;position:relative;aspect-ratio:1/1}
+  .render canvas{display:block;width:100%;height:100%}
+  .render .tag{position:absolute;left:13px;bottom:11px;background:rgba(7,16,26,.8);color:#fff;font-size:12px;padding:6px 11px;border-radius:7px}
+  .render .tag b{color:var(--sun)}
+  .render .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fb4c0;font-size:14px;text-align:center;padding:24px}
+  .results{margin-top:26px;border-top:2px solid var(--ink);padding-top:22px}
+  .resultgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  @media(max-width:680px){.resultgrid{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper);padding:17px 15px}
+  .stat .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px}
+  .stat .v{font-size:25px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .stat .v small{font-size:13px;font-weight:700;color:var(--ink-soft)}
+  .stat.hero{background:var(--ink)}.stat.hero .k{color:#9fb4c0}.stat.hero .v{color:#fff}.stat.hero .v small{color:var(--sun)}
+  .credit{margin-top:13px;display:flex;align-items:center;gap:10px;font-size:14px;background:#eaf3ee;border:1px solid #c9e2d4;color:#13573a;border-radius:10px;padding:12px 15px}
+  .credit b{font-weight:800}
+  .cta{margin-top:24px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .btn{background:var(--sun-deep);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:16px;padding:14px 25px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:#b86c12}
+  .ctanote{font-size:13px;color:var(--ink-soft);max-width:34ch}
+  .disclaimer{margin-top:28px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:16px;max-width:70ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead"><div class="mark">SUN<span>/</span>LEDGER</div><div class="eyebrow">Commercial solar &middot; estimate tool</div></div>
+  <h1>Solar on <span class="addr" id="addrline">your building</span>.</h1>
+  <p class="lede">Enter an average monthly power bill and watch the system size to that usage &mdash; real roof, real panel layout, real savings estimate.</p>
+
+  <div class="addrbar">
+    <input id="addrinput" type="text" placeholder="Check a different building &mdash; type a US commercial address" />
+    <button id="addrgo">Show roof</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Your numbers</h2>
+      <label for="bill">Average monthly electricity bill</label>
+      <div class="billrow"><span class="cur">$</span><input id="bill" type="number" min="500" max="200000" step="100" value="5000" /></div>
+      <input id="billrange" type="range" min="500" max="60000" step="100" value="5000" />
+      <div class="rangeends"><span>$500</span><span>$60,000+</span></div>
+      <div class="hint">Roughly what you pay in an average month. A ballpark is fine.</div>
+      <div class="selectrow">
+        <label for="utility">Utility / region</label>
+        <select id="utility">
+          <option value="0.115" selected>Arizona &mdash; APS / SRP</option>
+          <option value="0.135">Nevada &mdash; NV Energy</option>
+          <option value="0.105">Texas &mdash; Oncor region</option>
+          <option value="0.125">Florida &mdash; FPL region</option>
+          <option value="0.190">California &mdash; PG&amp;E / SCE</option>
+          <option value="0.120">Other / national average</option>
+        </select>
+        <div class="hint">Sets the rate we estimate against. Real tariff confirmed later.</div>
+      </div>
+    </div>
+    <div class="render">
+      <canvas id="roof" width="1280" height="1280"></canvas>
+      <div class="loading" id="loading" style="display:none">Analysing roof&hellip;</div>
+      <div class="tag">Est. system <b id="tagkw">&mdash;</b> &middot; panels on the real roof</div>
+    </div>
+  </div>
+
+  <div class="results">
+    <div class="resultgrid">
+      <div class="stat"><div class="k">System size</div><div class="v" id="r_kw">&mdash;</div></div>
+      <div class="stat"><div class="k">Annual savings</div><div class="v" id="r_annual">&mdash;</div></div>
+      <div class="stat hero"><div class="k">25-year savings</div><div class="v" id="r_life">&mdash;</div></div>
+      <div class="stat"><div class="k">Est. payback</div><div class="v" id="r_payback">&mdash;</div></div>
+    </div>
+    <div class="credit"><span>&#9889;</span><div>Includes the <b>30% federal tax credit</b> &mdash; about <b id="r_itc">&mdash;</b> off the installed system cost, if construction begins before the federal deadline.</div></div>
+    <div class="cta"><button class="btn" id="bookbtn">Get the exact numbers from my bill &rarr;</button><div class="ctanote">A 15-minute call turns this estimate into a firm number built on actual usage.</div></div>
+    <p class="disclaimer">Estimate only. Modeled from the stated monthly bill and a blended regional electricity rate. Actual system size, production, and savings depend on the utility tariff, demand charges, roof condition, and metered usage &mdash; confirmed once bills are reviewed. Not a quote or guarantee of savings.</p>
+  </div>
+</div>
+
+<script>
+var CAP_W = 400, PANELS = [], IMG = new Image(), IMW = 1280, IMH = 1280;
+var canvas = document.getElementById('roof'), ctx = canvas.getContext('2d');
+var loading = document.getElementById('loading');
+
+function fmt0(n){return n.toLocaleString('en-US',{maximumFractionDigits:0});}
+function money(n){return '$'+fmt0(Math.round(n));}
+function moneyShort(n){if(n>=1e6)return '$'+(n/1e6).toFixed(n>=1e7?1:2)+'M';if(n>=1e3)return '$'+fmt0(Math.round(n/1e3))+'k';return '$'+fmt0(Math.round(n));}
+
+function setBuilding(b){
+  CAP_W = b.capW || 400;
+  IMW = b.width || 1280; IMH = b.height || 1280;
+  canvas.width = IMW; canvas.height = IMH;
+  // panels arrive compact: [kwh,x0,y0,x1,y1,x2,y2,x3,y3]
+  PANELS = b.panels.map(function(a){return {kwh:a[0], corners:[[a[1],a[2]],[a[3],a[4]],[a[5],a[6]],[a[7],a[8]]]};});
+  document.getElementById('addrline').textContent = b.address || 'your building';
+  IMG = new Image();
+  IMG.onload = function(){ loading.style.display='none'; calc(); };
+  IMG.onerror = function(){ loading.textContent='Could not load roof image.'; };
+  IMG.src = b.image;
+  if (IMG.complete && IMG.naturalWidth) { loading.style.display='none'; calc(); }
+}
+
+function drawPanels(showN){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(IMG.complete && IMG.naturalWidth) ctx.drawImage(IMG,0,0,canvas.width,canvas.height);
+  ctx.lineWidth=1;
+  for(var i=0;i<showN && i<PANELS.length;i++){
+    var c=PANELS[i].corners;
+    ctx.beginPath();ctx.moveTo(c[0][0],c[0][1]);
+    for(var k=1;k<c.length;k++)ctx.lineTo(c[k][0],c[k][1]);
+    ctx.closePath();
+    ctx.fillStyle='rgba(16,36,58,0.88)';ctx.fill();
+    ctx.strokeStyle='rgba(120,160,200,0.9)';ctx.stroke();
+  }
+}
+
+function calc(){
+  if(!PANELS.length) return;
+  var b=Math.max(0,+document.getElementById('bill').value||0);
+  var rate=+document.getElementById('utility').value;
+  var annualSpend=b*12, targetKWh=annualSpend/rate*0.92;
+  var cum=0,need=0;
+  for(var i=0;i<PANELS.length;i++){cum+=PANELS[i].kwh;need=i+1;if(cum>=targetKWh)break;}
+  need=Math.min(need,PANELS.length);
+  var sysKWh=0;for(var j=0;j<need;j++)sysKWh+=PANELS[j].kwh;
+  var systemKW=need*CAP_W/1000;
+  var systemCost=systemKW*1000*1.80, itc=systemCost*0.30, netCost=systemCost-itc;
+  var year1=Math.min(annualSpend*0.92, sysKWh*rate);
+  var life=0;for(var y=0;y<25;y++){life+=year1*Math.pow(1.03,y)*Math.pow(0.995,y);}
+  var payback=year1>0?netCost/year1:0;
+  document.getElementById('r_kw').innerHTML=fmt0(Math.round(systemKW))+' <small>kW</small>';
+  document.getElementById('r_annual').innerHTML=money(year1);
+  document.getElementById('r_life').innerHTML=moneyShort(life);
+  document.getElementById('r_payback').innerHTML=payback.toFixed(1)+' <small>yrs</small>';
+  document.getElementById('r_itc').textContent=moneyShort(itc);
+  document.getElementById('tagkw').textContent=fmt0(Math.round(systemKW))+' kW';
+  drawPanels(need);
+}
+
+// address lookup via serverless function
+function lookup(address){
+  loading.textContent='Analysing roof\u2026'; loading.style.display='flex';
+  document.getElementById('addrgo').disabled=true;
+  fetch('/.netlify/functions/roof?address='+encodeURIComponent(address))
+    .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    .then(function(res){
+      document.getElementById('addrgo').disabled=false;
+      if(!res.ok){ loading.textContent = res.j.error || 'Could not analyse that building.'; return; }
+      setBuilding(res.j);
+    })
+    .catch(function(){ document.getElementById('addrgo').disabled=false; loading.textContent='Lookup failed. Try again.'; });
+}
+
+// wire up
+document.getElementById('bill').addEventListener('input',function(){var r=document.getElementById('billrange');if(+this.value<=60000)r.value=this.value;calc();});
+document.getElementById('billrange').addEventListener('input',function(){document.getElementById('bill').value=this.value;calc();});
+document.getElementById('utility').addEventListener('change',calc);
+document.getElementById('addrgo').addEventListener('click',function(){var a=document.getElementById('addrinput').value.trim();if(a)lookup(a);});
+document.getElementById('addrinput').addEventListener('keydown',function(e){if(e.key==='Enter'){var a=this.value.trim();if(a)lookup(a);}});
+document.getElementById('bookbtn').addEventListener('click',function(){this.textContent='We will be in touch \u2014 check your inbox \u2192';});
+
+// initial load: ?address= triggers a live lookup; otherwise show the default building
+(function(){
+  var params=new URLSearchParams(location.search);
+  var a=params.get('address');
+  if(a){ document.getElementById('addrinput').value=a; lookup(a); return; }
+  fetch('default_building.json').then(function(r){return r.json();}).then(setBuilding)
+    .catch(function(){ loading.style.display='flex'; loading.textContent='Could not load default building.'; });
+})();
+</script>
+</body>
+</html>
