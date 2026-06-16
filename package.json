@@ -2,5 +2,8 @@
   "name": "solar-calculator",
   "version": "1.0.0",
   "description": "Commercial solar prospecting calculator",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
 }
