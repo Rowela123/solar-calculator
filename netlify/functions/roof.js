@@ -1,11 +1,11 @@
 // Netlify serverless function: address -> roof image URL + panel pixel data
-// The Google API key is read from a secret env var (GOOGLE_API_KEY), never sent to the browser.
+// Google API key stays server-side. Satellite image comes from Mapbox (via sat.js)
+// because Google blocks satellite imagery for EEA billing accounts.
 
-const ZOOM = 19;
-const IMG_SIZE = 640;     // static maps tile size before scale
-const SCALE = 2;          // -> 1280x1280 final
-const IMG_PX = IMG_SIZE * SCALE;
-const PANEL_KEEP = 0.70;  // export up to 70% of panels; calculator narrows per bill
+const IMG_SIZE = 640;
+const SCALE = 2;
+const IMG_PX = IMG_SIZE * SCALE;   // 1280
+const PANEL_KEEP = 0.70;
 
 function worldPx(lat, lng, zoom) {
   const s = 256 * Math.pow(2, zoom);
@@ -16,15 +16,29 @@ function worldPx(lat, lng, zoom) {
   return [x, y];
 }
 
-function latLngToImgPx(lat, lng, cLat, cLng) {
-  const [wx, wy] = worldPx(lat, lng, ZOOM);
-  const [cx, cy] = worldPx(cLat, cLng, ZOOM);
+function latLngToImgPx(lat, lng, cLat, cLng, zoom) {
+  const [wx, wy] = worldPx(lat, lng, zoom);
+  const [cx, cy] = worldPx(cLat, cLng, zoom);
   const half = IMG_PX / 2;
   return [(wx - cx) * SCALE + half, (wy - cy) * SCALE + half];
 }
 
-function metersPerPixel(lat) {
-  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, ZOOM) / SCALE;
+function metersPerPixel(lat, zoom) {
+  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom) / SCALE;
+}
+
+// Pick the largest zoom at which the building's bounding box fits ~85% of the frame.
+function chooseZoom(bbox, lat) {
+  const spanLatM = Math.abs(bbox.ne.latitude - bbox.sw.latitude) * 111320;
+  const spanLngM = Math.abs(bbox.ne.longitude - bbox.sw.longitude) * 111320 * Math.cos((lat * Math.PI) / 180);
+  const spanM = Math.max(spanLatM, spanLngM);
+  if (spanM <= 0) return 19;
+  const targetPx = IMG_PX * 0.85;
+  for (const z of [20, 19, 18, 17, 16]) {
+    const mpp = (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, z) / SCALE;
+    if (spanM / mpp <= targetPx) return z;
+  }
+  return 16;
 }
 
 function rotatedRect(cx, cy, wPx, hPx, azimuthDeg) {
@@ -41,17 +55,12 @@ function rotatedRect(cx, cy, wPx, hPx, azimuthDeg) {
 
 exports.handler = async (event) => {
   const key = process.env.GOOGLE_API_KEY;
-  if (!key) {
-    return { statusCode: 500, body: JSON.stringify({ error: "Server missing API key" }) };
-  }
+  if (!key) return { statusCode: 500, body: JSON.stringify({ error: "Server missing API key" }) };
 
-  const address = (event.queryStringParameters && event.queryStringParameters.address || "").trim();
-  if (!address) {
-    return { statusCode: 400, body: JSON.stringify({ error: "No address provided" }) };
-  }
+  const address = ((event.queryStringParameters && event.queryStringParameters.address) || "").trim();
+  if (!address) return { statusCode: 400, body: JSON.stringify({ error: "No address provided" }) };
 
   try {
-    // 1. Geocode
     const geoR = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`
     );
@@ -61,7 +70,6 @@ exports.handler = async (event) => {
     }
     const loc = geo.results[0].geometry.location;
 
-    // 2. Building insights (Solar API)
     const solR = await fetch(
       `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${loc.lat}&location.longitude=${loc.lng}&requiredQuality=HIGH&key=${key}`
     );
@@ -74,14 +82,17 @@ exports.handler = async (event) => {
       return { statusCode: 404, body: JSON.stringify({ error: "No roof data available for this building" }) };
     }
 
-    const panels = sp.solarPanels;        // pre-sorted best-first
+    const panels = sp.solarPanels;
     const segments = sp.roofSegmentStats;
     const pw = sp.panelWidthMeters, ph = sp.panelHeightMeters;
     const capW = sp.panelCapacityWatts || 400;
 
     const bLat = data.center.latitude;
     const bLng = data.center.longitude;
-    const mpp = metersPerPixel(bLat);
+
+    // auto-zoom so the whole building fits the frame
+    const zoom = chooseZoom(data.boundingBox, bLat);
+    const mpp = metersPerPixel(bLat, zoom);
 
     const keepN = Math.max(1, Math.floor(panels.length * PANEL_KEEP));
     const out = [];
@@ -90,16 +101,15 @@ exports.handler = async (event) => {
       const seg = segments[p.segmentIndex] || {};
       const az = seg.azimuthDegrees || 0;
       const [wM, hM] = p.orientation === "LANDSCAPE" ? [ph, pw] : [pw, ph];
-      const [cx, cy] = latLngToImgPx(p.center.latitude, p.center.longitude, bLat, bLng);
+      const [cx, cy] = latLngToImgPx(p.center.latitude, p.center.longitude, bLat, bLng, zoom);
       const corners = rotatedRect(cx, cy, wM / mpp, hM / mpp, az);
       out.push([Math.round(p.yearlyEnergyDcKwh * 10) / 10,
                 corners[0][0], corners[0][1], corners[1][0], corners[1][1],
                 corners[2][0], corners[2][1], corners[3][0], corners[3][1]]);
     }
 
-    // 3. Satellite image URL (signed with key) - returned for the browser to load.
-    // Note: this URL contains the key. To avoid exposing it, we proxy the image instead (see image endpoint).
-    const imgUrl = `/.netlify/functions/sat?lat=${bLat}&lng=${bLng}`;
+    // image proxied from Mapbox via sat.js; pass the zoom so it matches
+    const imgUrl = `/.netlify/functions/sat?lat=${bLat}&lng=${bLng}&zoom=${zoom}`;
 
     return {
       statusCode: 200,
@@ -107,6 +117,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         address,
         center: { lat: bLat, lng: bLng },
+        zoom,
         width: IMG_PX, height: IMG_PX,
         capW,
         maxPanels: panels.length,
