@@ -25,7 +25,8 @@ exports.handler = async (event) => {
   }
   const q = event.queryStringParameters || {};
   const lat = parseFloat(q.lat), lng = parseFloat(q.lng);
-  const zoom = parseInt(q.zoom, 10) || 19;
+  let zoom = parseInt(q.zoom, 10) || 19;
+  if (zoom > 19) zoom = 19;   // Mapbox satellite tiles unreliable above 19
   if (isNaN(lat) || isNaN(lng)) {
     return { statusCode: 400, headers: { "Content-Type": "text/plain" }, body: "BAD_COORDS" };
   }
@@ -37,14 +38,17 @@ exports.handler = async (event) => {
     const left = cwx - halfLogical;
     const top = cwy - halfLogical;
 
-    const tx0 = Math.floor(left / TILE);
-    const ty0 = Math.floor(top / TILE);
-    const tx1 = Math.floor((left + IMG_SIZE) / TILE);
-    const ty1 = Math.floor((top + IMG_SIZE) / TILE);
+    // pad by one tile each side so the crop window always fits the canvas
+    const tx0 = Math.floor(left / TILE) - 1;
+    const ty0 = Math.floor(top / TILE) - 1;
+    const tx1 = Math.floor((left + IMG_SIZE) / TILE) + 1;
+    const ty1 = Math.floor((top + IMG_SIZE) / TILE) + 1;
 
     const R = SCALE; // device scale (tiles fetched @2x = 512px)
     const canvasLogicalW = (tx1 - tx0 + 1) * TILE;
-    const canvasPx = canvasLogicalW * R;
+    const canvasLogicalH = (ty1 - ty0 + 1) * TILE;
+    const canvasPxW = canvasLogicalW * R;
+    const canvasPxH = canvasLogicalH * R;
 
     // fetch all tiles (@2x -> 512px each)
     const composites = [];
@@ -63,12 +67,15 @@ exports.handler = async (event) => {
 
     // build the stitched canvas
     const stitched = await sharp({
-      create: { width: canvasPx, height: canvasPx, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
+      create: { width: canvasPxW, height: canvasPxH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
     }).composite(composites).png().toBuffer();
 
     // crop to the exact window in device px
-    const cl = Math.round((left - tx0 * TILE) * R);
-    const ct = Math.round((top - ty0 * TILE) * R);
+    let cl = Math.round((left - tx0 * TILE) * R);
+    let ct = Math.round((top - ty0 * TILE) * R);
+    // clamp so extract stays fully inside the canvas
+    cl = Math.max(0, Math.min(cl, canvasPxW - IMG_PX));
+    ct = Math.max(0, Math.min(ct, canvasPxH - IMG_PX));
     const final = await sharp(stitched)
       .extract({ left: cl, top: ct, width: IMG_PX, height: IMG_PX })
       .png()
