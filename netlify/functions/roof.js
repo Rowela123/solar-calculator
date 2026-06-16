@@ -34,7 +34,7 @@ function chooseZoom(bbox, lat) {
   const spanM = Math.max(spanLatM, spanLngM);
   if (spanM <= 0) return 19;
   const targetPx = IMG_PX * 0.85;
-  for (const z of [20, 19, 18, 17, 16]) {
+  for (const z of [19, 18, 17, 16]) {
     const mpp = (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, z) / SCALE;
     if (spanM / mpp <= targetPx) return z;
   }
