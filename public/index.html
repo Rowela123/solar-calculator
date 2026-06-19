@@ -21,7 +21,9 @@
   .addrbar button{background:var(--ink);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:14px;padding:0 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
   .addrbar button:disabled{opacity:.5;cursor:default}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
-  @media(max-width:780px){.grid{grid-template-columns:1fr}}
+  .leftcol{display:flex;flex-direction:column;gap:18px}
+  .grid>.render{position:sticky;top:20px}
+  @media(max-width:780px){.grid{grid-template-columns:1fr}.grid>.render{position:static;order:-1}}
   .card{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:22px}
   .card h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;font-weight:700}
   label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}
@@ -55,6 +57,19 @@
   .btn:hover{background:#b86c12}
   .ctanote{font-size:13px;color:var(--ink-soft);max-width:34ch}
   .disclaimer{margin-top:28px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:16px;max-width:70ch}
+  .modetoggle{display:inline-flex;background:#eef2ee;border:1px solid var(--line,#d8e0dd);border-radius:10px;padding:4px;margin-bottom:18px;gap:4px}
+  .modebtn{font:inherit;font-weight:700;font-size:14px;padding:9px 18px;border:none;border-radius:7px;background:transparent;color:#5a6b72;cursor:pointer;transition:.15s}
+  .modebtn.active{background:#fff;color:#16242b;box-shadow:0 2px 6px rgba(20,36,43,.12)}
+  .impact{display:flex;gap:14px;align-items:center;
+    background:linear-gradient(135deg,#1f7a4d,#2f9d63);border:none;
+    border-radius:14px;padding:18px 20px;margin:4px 0 20px;color:#fff;
+    box-shadow:0 8px 22px rgba(31,122,77,.28)}
+  .impact .leaf{font-size:30px;line-height:1}
+  .impact .impact-main{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .impact .impact-main b{color:#eafff2}
+  .impact .impact-sub{font-size:14px;color:#dff3e7;margin-top:2px}
+  .impact .impact-sub b{color:#fff}
+  .impact .impnote{color:#bfe5cf;font-size:12px}
 </style>
 </head>
 <body>
@@ -69,6 +84,7 @@
   </div>
 
   <div class="grid">
+    <div class="leftcol">
     <div class="card">
       <h2>Your numbers</h2>
       <label for="bill">Average monthly electricity bill</label>
@@ -89,28 +105,66 @@
         <div class="hint">Sets the rate we estimate against. Real tariff confirmed later.</div>
       </div>
     </div>
+
+    <div class="results">
+      <div class="modetoggle">
+        <button class="modebtn active" id="mode_ppa" type="button">No-cost PPA</button>
+        <button class="modebtn" id="mode_own" type="button">If you owned it</button>
+    </div>
+
+    <!-- PPA VIEW -->
+    <div id="ppaview">
+      <div class="resultgrid">
+        <div class="stat"><div class="k">Today's monthly bill</div><div class="v" id="p_old">&mdash;</div></div>
+        <div class="stat"><div class="k">Est. monthly under PPA</div><div class="v" id="p_new">&mdash;</div></div>
+        <div class="stat hero"><div class="k">Est. annual saving</div><div class="v" id="p_save">&mdash;</div></div>
+        <div class="stat"><div class="k">Upfront cost</div><div class="v" id="p_upfront">$0</div></div>
+      </div>
+    </div>
+
+    <!-- OWNERSHIP VIEW -->
+    <div id="ownview" style="display:none">
+      <div class="resultgrid">
+        <div class="stat"><div class="k">System size</div><div class="v" id="r_kw">&mdash;</div></div>
+        <div class="stat"><div class="k">Annual savings</div><div class="v" id="r_annual">&mdash;</div></div>
+        <div class="stat hero"><div class="k">25-year savings</div><div class="v" id="r_life">&mdash;</div></div>
+        <div class="stat"><div class="k">Est. payback</div><div class="v" id="r_payback">&mdash;</div></div>
+      </div>
+    </div>
+
+    <div class="impact" id="impact">
+      <span class="leaf">&#127757;</span>
+      <div class="impact-body">
+        <div class="impact-main">Offsets ~<b id="r_co2">&mdash;</b> of CO&#8322; every year</div>
+        <div class="impact-sub">That&rsquo;s like taking <b id="r_cars">&mdash;</b> cars off the road. <span class="impnote">Estimate, based on system size.</span></div>
+      </div>
+    </div>
+
+    <div id="ppanote">
+      <div class="credit"><span>&#9889;</span><div><b>$0 upfront.</b> A provider owns, installs and maintains the system &mdash; you simply buy the clean power it makes at a rate set below your utility&rsquo;s. Ideal for non-profits, who can go solar this way <b>without needing the federal tax credit</b> (the provider captures it and passes the saving on).</div></div>
+      <p class="disclaimer">PPA estimate only, using an illustrative rate of <b id="p_rate_lbl">9&cent;/kWh</b> with a 2.5% annual escalator. Real PPA rate, term and escalator are set per project and confirmed by your provider. Not a quote or guarantee of savings.</p>
+    </div>
+    <div id="ownnote" style="display:none">
+      <div class="credit"><span>&#9889;</span><div>Includes the <b>30% federal tax credit</b> &mdash; about <b id="r_itc">&mdash;</b> off the installed system cost, if construction begins before the federal deadline.</div></div>
+    </div>
+
+    <div class="cta"><button class="btn" id="bookbtn">Get the exact numbers from my bill &rarr;</button><div class="ctanote">A 15-minute call turns this estimate into a firm number built on actual usage.</div></div>
+    <p class="disclaimer">Estimate only. Modeled from the stated monthly bill and a blended regional electricity rate. Actual figures depend on the utility tariff, demand charges, roof condition and metered usage &mdash; confirmed once bills are reviewed.</p>
+    </div>
+    </div>
     <div class="render">
       <canvas id="roof" width="1280" height="1280"></canvas>
       <div class="loading" id="loading" style="display:none">Analysing roof&hellip;</div>
       <div class="tag">Est. system <b id="tagkw">&mdash;</b> &middot; panels on the real roof</div>
     </div>
   </div>
-
-  <div class="results">
-    <div class="resultgrid">
-      <div class="stat"><div class="k">System size</div><div class="v" id="r_kw">&mdash;</div></div>
-      <div class="stat"><div class="k">Annual savings</div><div class="v" id="r_annual">&mdash;</div></div>
-      <div class="stat hero"><div class="k">25-year savings</div><div class="v" id="r_life">&mdash;</div></div>
-      <div class="stat"><div class="k">Est. payback</div><div class="v" id="r_payback">&mdash;</div></div>
-    </div>
-    <div class="credit"><span>&#9889;</span><div>Includes the <b>30% federal tax credit</b> &mdash; about <b id="r_itc">&mdash;</b> off the installed system cost, if construction begins before the federal deadline.</div></div>
-    <div class="cta"><button class="btn" id="bookbtn">Get the exact numbers from my bill &rarr;</button><div class="ctanote">A 15-minute call turns this estimate into a firm number built on actual usage.</div></div>
-    <p class="disclaimer">Estimate only. Modeled from the stated monthly bill and a blended regional electricity rate. Actual system size, production, and savings depend on the utility tariff, demand charges, roof condition, and metered usage &mdash; confirmed once bills are reviewed. Not a quote or guarantee of savings.</p>
-  </div>
 </div>
 
 <script>
 var CAP_W = 400, PANELS = [], IMG = new Image(), IMW = 1280, IMH = 1280;
+var PPA_RATE = 0.09;      // PLACEHOLDER PPA $/kWh (swap for partner's real rate)
+var PPA_ESCALATOR = 0.025; // PLACEHOLDER 2.5%/yr
+var MODE = 'ppa';
 var canvas = document.getElementById('roof'), ctx = canvas.getContext('2d');
 var loading = document.getElementById('loading');
 
@@ -166,14 +220,52 @@ function calc(){
   document.getElementById('r_payback').innerHTML=payback.toFixed(1)+' <small>yrs</small>';
   document.getElementById('r_itc').textContent=moneyShort(itc);
   document.getElementById('tagkw').textContent=fmt0(Math.round(systemKW))+' kW';
+  // ---- carbon offset (shared, both views) ----
+  var co2tons = sysKWh * 0.000709;           // metric tons CO2 avoided / yr
+  var cars = co2tons / 4.6;                   // avg passenger car ~4.6 t/yr
+  document.getElementById('r_co2').textContent = (co2tons>=1000? Math.round(co2tons).toLocaleString(): co2tons.toFixed(co2tons<10?1:0)) + ' tons';
+  document.getElementById('r_cars').textContent = Math.max(1,Math.round(cars)).toLocaleString();
   drawPanels(need);
+  // ---- PPA view ----
+  // Keep old and new on the SAME basis so the discount is real.
+  // Solar offsets sysKWh of the customer's annual usage at PPA_RATE (below utility rate);
+  // any usage beyond what solar covers stays at the utility rate.
+  var annualUsageKWh = targetKWh / 0.92;            // customer's true annual kWh
+  var solarKWh = Math.min(sysKWh, annualUsageKWh);  // solar can't exceed what they use
+  var gridKWh  = Math.max(0, annualUsageKWh - solarKWh);
+  var oldAnnual = annualUsageKWh * rate;            // all grid today
+  var newAnnual = solarKWh * PPA_RATE + gridKWh * rate; // solar at PPA rate + remainder at grid
+  var oldMonthly = oldAnnual / 12;
+  var ppaMonthly = newAnnual / 12;
+  var ppaSaveAnnual = oldAnnual - newAnnual;
+  // 25-yr PPA saving (PPA escalator vs utility inflation)
+  var ppaLife=0;
+  for(var py=0;py<25;py++){
+    var pCost=solarKWh*PPA_RATE*Math.pow(1+PPA_ESCALATOR,py)+gridKWh*rate*Math.pow(1.03,py);
+    var uCost=annualUsageKWh*rate*Math.pow(1.03,py);
+    ppaLife+=(uCost-pCost);
+  }
+  document.getElementById('p_old').innerHTML=money(oldMonthly);
+  document.getElementById('p_new').innerHTML=money(Math.max(0,ppaMonthly));
+  document.getElementById('p_save').innerHTML=money(Math.max(0,ppaSaveAnnual))+' <small>/yr</small>';
+  document.getElementById('p_rate_lbl').innerHTML=Math.round(PPA_RATE*100)+'\u00a2/kWh';
+}
+
+function setMode(m){
+  MODE=m;
+  document.getElementById('ppaview').style.display = (m==='ppa')?'block':'none';
+  document.getElementById('ownview').style.display = (m==='own')?'block':'none';
+  document.getElementById('ppanote').style.display = (m==='ppa')?'block':'none';
+  document.getElementById('ownnote').style.display = (m==='own')?'block':'none';
+  document.getElementById('mode_ppa').classList.toggle('active', m==='ppa');
+  document.getElementById('mode_own').classList.toggle('active', m==='own');
 }
 
 // address lookup via serverless function
 function lookup(address){
   loading.textContent='Analysing roof\u2026'; loading.style.display='flex';
   document.getElementById('addrgo').disabled=true;
-  fetch('/.netlify/functions/roof?address='+encodeURIComponent(address))
+  fetch('/api/roof?address='+encodeURIComponent(address))
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(res){
       document.getElementById('addrgo').disabled=false;
@@ -190,6 +282,8 @@ document.getElementById('utility').addEventListener('change',calc);
 document.getElementById('addrgo').addEventListener('click',function(){var a=document.getElementById('addrinput').value.trim();if(a)lookup(a);});
 document.getElementById('addrinput').addEventListener('keydown',function(e){if(e.key==='Enter'){var a=this.value.trim();if(a)lookup(a);}});
 document.getElementById('bookbtn').addEventListener('click',function(){this.textContent='We will be in touch \u2014 check your inbox \u2192';});
+document.getElementById('mode_ppa').addEventListener('click',function(){setMode('ppa');});
+document.getElementById('mode_own').addEventListener('click',function(){setMode('own');});
 
 // initial load: ?address= triggers a live lookup; otherwise show the default building
 (function(){
