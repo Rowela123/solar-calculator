@@ -8,14 +8,14 @@
   :root{--ink:#0d1b24;--ink-soft:#3f5562;--line:#d8e0e3;--paper:#f3f0e9;--sun:#e8a33d;--sun-deep:#cf7d1c;--field:#fff;}
   *{box-sizing:border-box}html,body{margin:0}
   body{background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
-  .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px}
-  .masthead{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:26px;gap:16px;flex-wrap:wrap}
+  .wrap{max-width:1040px;margin:0 auto;padding:20px 20px 80px}
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:16px;gap:16px;flex-wrap:wrap}
   .mark{font-weight:800;letter-spacing:-.02em;font-size:18px}.mark span{color:var(--sun-deep)}
   .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
-  h1{font-size:clamp(26px,4.5vw,42px);line-height:1.04;letter-spacing:-.025em;font-weight:800;margin:0 0 8px}
+  h1{font-size:clamp(24px,3.6vw,34px);line-height:1.05;letter-spacing:-.025em;font-weight:800;margin:0 0 6px}
   h1 .addr{color:var(--sun-deep)}
-  .lede{font-size:16px;color:var(--ink-soft);max-width:56ch;margin:0 0 22px}
-  .addrbar{display:flex;gap:8px;margin:0 0 26px;max-width:640px}
+  .lede{font-size:15px;color:var(--ink-soft);max-width:56ch;margin:0 0 14px}
+  .addrbar{display:flex;gap:8px;margin:0 0 16px;max-width:640px}
   .addrbar input{flex:1;font-size:15px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit}
   .addrbar input:focus{outline:3px solid #f0d8ad;border-color:var(--sun-deep)}
   .addrbar button{background:var(--ink);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:14px;padding:0 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
@@ -24,8 +24,8 @@
   .leftcol{display:flex;flex-direction:column;gap:18px}
   .grid>.render{position:sticky;top:20px}
   @media(max-width:780px){.grid{grid-template-columns:1fr}.grid>.render{position:static;order:-1}}
-  .card{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:22px}
-  .card h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;font-weight:700}
+  .card{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 12px;font-weight:700}
   label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}
   .hint{font-size:12px;color:var(--ink-soft);font-weight:400;margin-top:6px}
   .billrow{position:relative}
@@ -35,14 +35,14 @@
   input:focus,select:focus{outline:3px solid #f0d8ad;border-color:var(--sun-deep)}
   input[type=range]{width:100%;margin:16px 0 4px;accent-color:var(--sun-deep)}
   .rangeends{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft)}
-  .selectrow{margin-top:20px}
+  .selectrow{margin-top:14px}
   select{width:100%;font-size:15px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-weight:600}
-  .render{background:#10243a;border-radius:14px;overflow:hidden;border:1px solid #0a1726;position:relative;aspect-ratio:1/1}
-  .render canvas{display:block;width:100%;height:100%}
+  .render{background:#10243a;border-radius:14px;overflow:hidden;border:1px solid #0a1726;position:relative;aspect-ratio:1/1;max-height:calc(100vh - 110px)}
+  .render canvas{display:block;width:100%;height:100%;object-fit:cover}
   .render .tag{position:absolute;left:13px;bottom:11px;background:rgba(7,16,26,.8);color:#fff;font-size:12px;padding:6px 11px;border-radius:7px}
   .render .tag b{color:var(--sun)}
   .render .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fb4c0;font-size:14px;text-align:center;padding:24px}
-  .results{margin-top:26px;border-top:2px solid var(--ink);padding-top:22px}
+  .results{margin-top:0;padding-top:0}
   .resultgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   @media(max-width:680px){.resultgrid{grid-template-columns:repeat(2,1fr)}}
   .stat{background:var(--paper);padding:17px 15px}
